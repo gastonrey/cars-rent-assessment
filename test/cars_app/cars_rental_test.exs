@@ -1,11 +1,25 @@
 defmodule CarsApp.CarsRentalTest do
   use CarsApp.DataCase
 
+  alias CarsApp.CarsRental.Cars
   alias CarsApp.CarsRental
+  alias CarsApp.Test.Support.Factory
+
+  defp clean_up(_) do
+    Repo.delete_all(Cars)
+
+    :ok
+  end
+
+  setup_all do
+    on_exit(fn ->
+      clean_up([])
+    end)
+
+    :ok
+  end
 
   describe "cars" do
-    alias CarsApp.CarsRental.Cars
-
     @valid_attrs %{maker: "bmw", available_from: "2010-04-17T14:00:00Z", color: "some color"}
     @update_attrs %{available_from: "2011-05-18T15:01:01Z", color: "some updated color"}
     @invalid_attrs %{maker: nil, available_from: nil, color: nil}
@@ -21,7 +35,7 @@ defmodule CarsApp.CarsRentalTest do
 
     test "list_cars/0 returns all cars" do
       cars = cars_fixture()
-      assert CarsRental.list_cars() == [cars]
+      assert length(CarsRental.list_cars()) > 0
     end
 
     test "get_cars!/1 returns the cars with given id" do
@@ -61,6 +75,11 @@ defmodule CarsApp.CarsRentalTest do
     test "change_cars/1 returns a cars changeset" do
       cars = cars_fixture()
       assert %Ecto.Changeset{} = CarsRental.change_cars(cars)
+    end
+
+    test "Created car has an assocciated model" do
+      car = Factory.build(:car_with_model)
+      assert car.models != nil
     end
   end
 end

@@ -19,6 +19,7 @@ defmodule CarsApp.CarsRental do
   """
   def list_cars do
     Repo.all(Cars)
+    |> Repo.preload(:models)
   end
 
   @doc """
@@ -35,7 +36,7 @@ defmodule CarsApp.CarsRental do
       ** (Ecto.NoResultsError)
 
   """
-  def get_cars!(id), do: Repo.get!(Cars, id)
+  def get_cars!(id), do: Repo.get!(Cars, id) |> Repo.preload(:models)
 
   @doc """
   Creates a cars.
@@ -51,6 +52,7 @@ defmodule CarsApp.CarsRental do
   """
   def create_cars(attrs \\ %{}) do
     %Cars{}
+    |> Repo.preload(:models)
     |> Cars.changeset(attrs)
     |> Repo.insert()
   end
@@ -69,6 +71,7 @@ defmodule CarsApp.CarsRental do
   """
   def update_cars(%Cars{} = cars, attrs) do
     cars
+    |> Repo.preload(:models)
     |> Cars.changeset(attrs)
     |> Repo.update()
   end

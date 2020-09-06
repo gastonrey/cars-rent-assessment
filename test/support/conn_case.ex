@@ -35,7 +35,7 @@ defmodule CarsAppWeb.ConnCase do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(CarsApp.Repo)
 
     unless tags[:async] do
-      Ecto.Adapters.SQL.Sandbox.mode(CarsApp.Repo, {:shared, self()})
+      Ecto.Adapters.SQL.Sandbox.mode(CarsApp.Repo, :auto)
     end
 
     {:ok, conn: Phoenix.ConnTest.build_conn()}
