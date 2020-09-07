@@ -2,6 +2,7 @@ defmodule CarsApp.Test.Support.Factory do
   alias CarsApp.Repo
   alias CarsApp.CarsRental.Cars
   alias CarsApp.CarsRentalModels.Models
+  alias CarsApp.CarsRentalSubscriptions.Subscription
   alias CarsApp.CarsRental
 
   def build(:car) do
@@ -12,11 +13,22 @@ defmodule CarsApp.Test.Support.Factory do
     %Models{name: "Serie foo", year: "2019"}
   end
 
+  def build(:subs) do
+    %Subscription{type: "monthly", price: 235.87, "currency": "eu"}
+  end
+
   def build(:car_with_model) do
     car = insert!(:car)
     model = insert!(:model)
 
-    Cars.add_model(car, model)
+    CarsRental.add_model(car, model)
+  end
+
+  def build(:car_with_subscription) do
+    car = insert!(:car)
+    subs = insert!(:subs)
+
+    CarsRental.add_subscription(car, Map.from_struct(subs))
   end
 
   # Convenience API

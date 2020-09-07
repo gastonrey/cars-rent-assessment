@@ -7,6 +7,8 @@ defmodule CarsApp.CarsRental do
   alias CarsApp.Repo
 
   alias CarsApp.CarsRental.Cars
+  alias CarsApp.CarsRentalSubscriptions.Subscription
+  alias CarsApp.CarsRentalSubscriptions
 
   @doc """
   Returns the list of cars.
@@ -36,7 +38,7 @@ defmodule CarsApp.CarsRental do
       ** (Ecto.NoResultsError)
 
   """
-  def get_cars!(id), do: Repo.get!(Cars, id) |> Repo.preload(:models)
+  def get_cars!(id), do: Repo.get!(Cars, id) |> Repo.preload([:models, :subscription])
 
   @doc """
   Creates a cars.
@@ -51,10 +53,16 @@ defmodule CarsApp.CarsRental do
 
   """
   def create_cars(attrs \\ %{}) do
-    %Cars{}
-    |> Repo.preload(:models)
-    |> Cars.changeset(attrs)
-    |> Repo.insert()
+    subscription_attrs = Map.get(attrs, :subscription)
+    model_attrs = Map.get(attrs, :model)
+
+    car =
+      %Cars{}
+      |> Repo.preload([:models, :subscription])
+      |> Cars.changeset(attrs)
+      |> Repo.insert!()
+      |> add_subscription(subscription_attrs)
+      |> add_model(model_attrs)
   end
 
   @doc """
@@ -71,7 +79,7 @@ defmodule CarsApp.CarsRental do
   """
   def update_cars(%Cars{} = cars, attrs) do
     cars
-    |> Repo.preload(:models)
+    |> Repo.preload([:models, :subscription])
     |> Cars.changeset(attrs)
     |> Repo.update()
   end
@@ -103,5 +111,63 @@ defmodule CarsApp.CarsRental do
   """
   def change_cars(%Cars{} = cars, attrs \\ %{}) do
     Cars.changeset(cars, attrs)
+  end
+
+  def add_model(car, attrs) do
+    car = car |> Repo.preload(:models)
+
+    car
+    |> Ecto.Changeset.change()
+    |> Ecto.Changeset.put_assoc(:models, attrs)
+    |> Repo.update!()
+  end
+
+  def add_model(car, nil), do: car
+
+  def start_subscription(car, started_at) do
+    [subscription] = car.subscription
+
+    result =
+      subscription
+      |> CarsRentalSubscriptions.update_subscription(%{
+        started_at: DateTime.truncate(started_at, :second)
+      })
+
+    update_availability(car)
+  end
+
+  def add_subscription(car, %{} = attrs) do
+    car = car |> Repo.preload([:models, :subscription])
+
+    result =
+      car
+      |> Ecto.Changeset.change()
+      |> Ecto.Changeset.put_assoc(:subscription, [
+        struct(%Subscription{}, attrs) | car.subscription
+      ])
+      |> Repo.update!()
+
+    update_availability(result)
+  end
+
+  def add_subscription(car, nil) do
+    car = car |> Repo.preload([:subscription])
+    update_availability(car)
+  end
+
+  defp update_availability(%Cars{subscription: [%Subscription{started_at: subscription_start}]} = car) 
+    when subscription_start != nil do
+    available_next_month =
+      subscription_start |> DateTime.from_naive!("Etc/UTC") |> Timex.shift(months: +1)
+
+    car
+    |> Repo.preload([:models, :subscription])
+    |> Ecto.Changeset.change(%{available_from: available_next_month})
+    |> Repo.update!()
+  end
+
+  defp update_availability(%Cars{} = car) do
+    {:ok, result} = update_cars(car, %{available_from: Timex.now()})
+    result
   end
 end

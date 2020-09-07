@@ -2,11 +2,18 @@ defmodule CarsApp.CarsRental.Cars do
   use Ecto.Schema
   import Ecto.Changeset
   alias CarsApp.Repo
+  alias CarsApp.CarsRentalSubscriptions.Subscription
 
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
   schema "cars" do
     belongs_to :models, CarsApp.CarsRentalModels.Models
+
+    has_many(:subscription, CarsApp.CarsRentalSubscriptions.Subscription, [
+      {:on_delete, :delete_all},
+      {:on_replace, :nilify}
+    ])
+
     field :maker, :string
     field :color, :string
     field :available_from, :utc_datetime
@@ -18,16 +25,6 @@ defmodule CarsApp.CarsRental.Cars do
   def changeset(cars, attrs) do
     cars
     |> cast(attrs, [:maker, :color, :available_from])
-    |> validate_required([:maker, :available_from])
-    |> Repo.preload(:models)
-  end
-
-  def add_model(car, attrs) do
-    car = car |> Repo.preload(:models)
-
-    car
-    |> Ecto.Changeset.change()
-    |> Ecto.Changeset.put_assoc(:models, attrs)
-    |> Repo.update!()
+    |> validate_required([:maker])
   end
 end
