@@ -7,6 +7,8 @@ defmodule CarsAppWeb.Router do
 
   scope "/api", CarsAppWeb do
     pipe_through :api
+
+    resources "/cars", CarsController
   end
 
   # Enables LiveDashboard only for development

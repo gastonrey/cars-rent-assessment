@@ -22,6 +22,7 @@ defmodule CarsApp.CarsRental do
   def list_cars do
     Repo.all(Cars)
     |> Repo.preload(:models)
+    |> Repo.preload(:subscription)
   end
 
   @doc """
@@ -52,17 +53,37 @@ defmodule CarsApp.CarsRental do
       {:error, %Ecto.Changeset{}}
 
   """
-  def create_cars(attrs \\ %{}) do
-    subscription_attrs = Map.get(attrs, :subscription)
-    model_attrs = Map.get(attrs, :model)
+  def create_cars(
+        attrs = %{
+          "subscription" => %{
+            "type" => type,
+            "currency" => currency,
+            "price" => price
+          }
+        }
+      ) do
+    create(attrs, %{type: type, currency: currency, price: price}, %{})
+  end
 
+  def create_cars(attrs = %{"model" => %{"name" => name, "year" => year}}) do
+    create(attrs, %{}, %{name: name, year: year})
+  end
+
+  def create_cars(%{"maker" => maker, "color" => color} = attrs) do
+    create(attrs, %{}, %{})
+  end
+
+  defp create(%{} = attrs, %{} = subscription, %{} = model) do
     car =
       %Cars{}
       |> Repo.preload([:models, :subscription])
       |> Cars.changeset(attrs)
       |> Repo.insert!()
-      |> add_subscription(subscription_attrs)
-      |> add_model(model_attrs)
+      |> add_subscription(subscription)
+      |> add_model(model)
+  rescue
+    e in Ecto.InvalidChangesetError -> {:error, e.changeset}
+    e in [Postgrex.Error, MatchError] -> {:error, %{error: e.changeset.errors}}
   end
 
   @doc """
@@ -78,10 +99,11 @@ defmodule CarsApp.CarsRental do
 
   """
   def update_cars(%Cars{} = cars, attrs) do
-    cars
-    |> Repo.preload([:models, :subscription])
-    |> Cars.changeset(attrs)
-    |> Repo.update()
+    {:ok, car} =
+      cars
+      |> Repo.preload([:models, :subscription])
+      |> Cars.changeset(attrs)
+      |> Repo.update()
   end
 
   @doc """
@@ -155,8 +177,10 @@ defmodule CarsApp.CarsRental do
     update_availability(car)
   end
 
-  defp update_availability(%Cars{subscription: [%Subscription{started_at: subscription_start}]} = car) 
-    when subscription_start != nil do
+  defp update_availability(
+         %Cars{subscription: [%Subscription{started_at: subscription_start}]} = car
+       )
+       when subscription_start != nil do
     available_next_month =
       subscription_start |> DateTime.from_naive!("Etc/UTC") |> Timex.shift(months: +1)
 
