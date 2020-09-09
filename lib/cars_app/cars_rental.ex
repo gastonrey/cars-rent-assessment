@@ -21,7 +21,6 @@ defmodule CarsApp.CarsRental do
   """
   def list_cars do
     Repo.all(Cars)
-    |> Repo.preload(:models)
     |> Repo.preload(:subscription)
   end
 
@@ -39,10 +38,10 @@ defmodule CarsApp.CarsRental do
       ** (Ecto.NoResultsError)
 
   """
-  def get_cars!(id), do: Repo.get!(Cars, id) |> Repo.preload([:models, :subscription])
+  def get_cars!(id), do: Repo.get!(Cars, id) |> Repo.preload([:subscription])
 
   @doc """
-  Creates a cars.
+  Creates a cars with assocciated subscription
 
   ## Examples
 
@@ -53,34 +52,13 @@ defmodule CarsApp.CarsRental do
       {:error, %Ecto.Changeset{}}
 
   """
-  def create_cars(
-        attrs = %{
-          "subscription" => %{
-            "type" => type,
-            "currency" => currency,
-            "price" => price
-          }
-        }
-      ) do
-    create(attrs, %{type: type, currency: currency, price: price}, %{})
-  end
-
-  def create_cars(attrs = %{"model" => %{"name" => name, "year" => year}}) do
-    create(attrs, %{}, %{name: name, year: year})
-  end
-
-  def create_cars(%{"maker" => maker, "color" => color} = attrs) do
-    create(attrs, %{}, %{})
-  end
-
-  defp create(%{} = attrs, %{} = subscription, %{} = model) do
+  def create_cars(attrs \\ %{}) do
     car =
       %Cars{}
-      |> Repo.preload([:models, :subscription])
+      |> Repo.preload([:subscription])
       |> Cars.changeset(attrs)
       |> Repo.insert!()
-      |> add_subscription(subscription)
-      |> add_model(model)
+      |> add_subscription(attrs)
   rescue
     e in Ecto.InvalidChangesetError -> {:error, e.changeset}
     e in [Postgrex.Error, MatchError] -> {:error, %{error: e.changeset.errors}}
@@ -101,7 +79,7 @@ defmodule CarsApp.CarsRental do
   def update_cars(%Cars{} = cars, attrs) do
     {:ok, car} =
       cars
-      |> Repo.preload([:models, :subscription])
+      |> Repo.preload([:subscription])
       |> Cars.changeset(attrs)
       |> Repo.update()
   end
@@ -135,17 +113,6 @@ defmodule CarsApp.CarsRental do
     Cars.changeset(cars, attrs)
   end
 
-  def add_model(car, attrs) do
-    car = car |> Repo.preload(:models)
-
-    car
-    |> Ecto.Changeset.change()
-    |> Ecto.Changeset.put_assoc(:models, attrs)
-    |> Repo.update!()
-  end
-
-  def add_model(car, nil), do: car
-
   def start_subscription(car, started_at) do
     [subscription] = car.subscription
 
@@ -158,21 +125,22 @@ defmodule CarsApp.CarsRental do
     update_availability(car)
   end
 
-  def add_subscription(car, %{} = attrs) do
-    car = car |> Repo.preload([:models, :subscription])
+  def add_subscription(car, %{"subscription" => params}) do
+    params = params |> key_to_atom()
 
+    car = car |> Repo.preload([:subscription])  
     result =
       car
       |> Ecto.Changeset.change()
       |> Ecto.Changeset.put_assoc(:subscription, [
-        struct(%Subscription{}, attrs) | car.subscription
+        struct(%Subscription{}, params) | car.subscription
       ])
       |> Repo.update!()
 
     update_availability(result)
   end
 
-  def add_subscription(car, nil) do
+  def add_subscription(car, _) do
     car = car |> Repo.preload([:subscription])
     update_availability(car)
   end
@@ -185,7 +153,7 @@ defmodule CarsApp.CarsRental do
       subscription_start |> DateTime.from_naive!("Etc/UTC") |> Timex.shift(months: +1)
 
     car
-    |> Repo.preload([:models, :subscription])
+    |> Repo.preload([:subscription])
     |> Ecto.Changeset.change(%{available_from: available_next_month})
     |> Repo.update!()
   end
@@ -193,5 +161,15 @@ defmodule CarsApp.CarsRental do
   defp update_availability(%Cars{} = car) do
     {:ok, result} = update_cars(car, %{available_from: Timex.now()})
     result
+  end
+
+  def key_to_atom(%{} = map) do
+    Enum.reduce(map, %{}, fn
+      {key, value}, acc when is_atom(key) -> Map.put(acc, key, value)
+      # String.to_existing_atom saves us from overloading the VM by
+      # creating too many atoms. It'll always succeed because all the fields
+      # in the database already exist as atoms at runtime.
+      {key, value}, acc when is_binary(key) -> Map.put(acc, String.to_existing_atom(key), value)
+    end)
   end
 end

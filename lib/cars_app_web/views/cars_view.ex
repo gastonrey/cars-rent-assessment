@@ -16,7 +16,7 @@ defmodule CarsAppWeb.CarsView do
       maker: car.maker,
       color: car.color,
       available_from: car.available_from,
-      model: get_model(car.models),
+      model: nil,
       subscription: get_subscription_from(car.subscription)}
   end
 
