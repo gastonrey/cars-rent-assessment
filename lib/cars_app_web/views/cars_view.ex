@@ -15,19 +15,10 @@ defmodule CarsAppWeb.CarsView do
     %{id: car.id,
       maker: car.maker,
       color: car.color,
+      model: car.model,
+      year: car.year,
       available_from: car.available_from,
-      model: nil,
       subscription: get_subscription_from(car.subscription)}
-  end
-
-  defp get_model(model) do
-    case model do
-      %Models{} -> 
-        model
-        |> Map.from_struct()
-        |> Map.take([:name, :year])
-      nil -> nil
-    end
   end
 
   defp get_subscription_from(subs) do

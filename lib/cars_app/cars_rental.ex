@@ -20,8 +20,13 @@ defmodule CarsApp.CarsRental do
 
   """
   def list_cars do
-    Repo.all(Cars)
-    |> Repo.preload(:subscription)
+    three_months_ahead_from_now = Timex.now() |> Timex.shift(months: +3)
+    Cars
+    |> join(:left, [c], s in assoc(c, :subscription))
+    |> where([c, s], c.available_from <= ^three_months_ahead_from_now)
+    |> order_by([c, s], [{:asc, s.price}])
+    |> preload([c, s], subscription: s)
+    |> Repo.all()
   end
 
   @doc """
@@ -77,11 +82,12 @@ defmodule CarsApp.CarsRental do
 
   """
   def update_cars(%Cars{} = cars, attrs) do
-    {:ok, car} =
-      cars
-      |> Repo.preload([:subscription])
-      |> Cars.changeset(attrs)
-      |> Repo.update()
+    cars
+    |> Repo.preload([:subscription])
+    |> Cars.changeset(attrs)
+    |> Repo.update!()
+  rescue
+    e in Ecto.InvalidChangesetError -> {:error, e.changeset}
   end
 
   @doc """
@@ -125,15 +131,17 @@ defmodule CarsApp.CarsRental do
     update_availability(car)
   end
 
-  def add_subscription(car, %{"subscription" => params}) do
+  def add_subscription(car, params)
+      when is_map_key(params, "subscription") or is_map_key(params, :subscription) do
     params = params |> key_to_atom()
 
-    car = car |> Repo.preload([:subscription])  
+    car = car |> Repo.preload([:subscription])
+
     result =
       car
       |> Ecto.Changeset.change()
       |> Ecto.Changeset.put_assoc(:subscription, [
-        struct(%Subscription{}, params) | car.subscription
+        struct(%Subscription{}, params[:subscription] |> key_to_atom()) | car.subscription
       ])
       |> Repo.update!()
 
@@ -159,8 +167,7 @@ defmodule CarsApp.CarsRental do
   end
 
   defp update_availability(%Cars{} = car) do
-    {:ok, result} = update_cars(car, %{available_from: Timex.now()})
-    result
+    update_cars(car, %{available_from: Timex.now()})
   end
 
   def key_to_atom(%{} = map) do

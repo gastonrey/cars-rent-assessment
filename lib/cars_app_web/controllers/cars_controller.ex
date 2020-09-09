@@ -3,6 +3,7 @@ defmodule CarsAppWeb.CarsController do
 
   alias CarsApp.CarsRental
   alias CarsApp.CarsRental.Cars
+  alias CarsApp.CarsRentalSubscriptions
 
   action_fallback CarsAppWeb.FallbackController
 
@@ -28,8 +29,25 @@ defmodule CarsAppWeb.CarsController do
 
   def update(conn, %{"id" => id, "car" => cars_params}) do
     cars = CarsRental.get_cars!(id)
+    with %Cars{} = cars <- CarsRental.update_cars(cars, cars_params) do
+      render(conn, "show.json", car: cars)
+    end
+  end
 
-    with {:ok, %Cars{} = cars} <- CarsRental.update_cars(cars, cars_params) do
+  def update_subscription(conn, %{"id" => id, "subscription" => params}) do
+    subs = CarsRentalSubscriptions.get_subscription!(id)
+    updated_subs = CarsRentalSubscriptions.update_subscription(subs, params)
+    
+    with %Cars{} = cars <- CarsRental.get_cars!(updated_subs.cars_id) do
+      render(conn, "show.json", car: cars)
+    end
+  end
+
+  def start_subscription(conn, %{"id" => id, "started_at" => started_at}) do
+    car = CarsRental.get_cars!(id)
+    {:ok, parsed_date} = Timex.parse(started_at <> " 00:00:00Z", "{ISO:Extended}")
+    
+    with %Cars{} = cars <- CarsRental.start_subscription(car, parsed_date) do
       render(conn, "show.json", car: cars)
     end
   end

@@ -6,7 +6,9 @@ defmodule CarsAppWeb.CarsControllerTest do
 
   @create_attrs %{
     color: "Blue",
-    maker: "BMW"
+    maker: "BMW", 
+    model: "serie3", 
+    year: "2019"
   }
   @update_attrs %{
     color: "some updated color",
@@ -14,9 +16,8 @@ defmodule CarsAppWeb.CarsControllerTest do
   }
   @invalid_attrs %{maker: nil}
 
-  def fixture(:cars) do
-    {:ok, cars} = CarsRental.create_cars(@create_attrs)
-    cars
+  def fixture(:car) do
+    CarsRental.create_cars(@create_attrs) 
   end
 
   setup %{conn: conn} do
@@ -51,21 +52,22 @@ defmodule CarsAppWeb.CarsControllerTest do
     setup [:create_cars]
 
     test "renders cars when data is valid", %{conn: conn, cars: %Cars{id: id} = cars} do
-      conn = put(conn, Routes.cars_path(conn, :update, cars), cars: @update_attrs)
+      conn = put(conn, Routes.cars_path(conn, :update, cars), car: @update_attrs)
       assert %{"id" => ^id} = json_response(conn, 200)["data"]
 
       conn = get(conn, Routes.cars_path(conn, :show, id))
 
-      assert %{
-               "id" => id,
-               "available_from" => "some updated available_from",
-               "color" => "some updated color",
-               "maker" => "some updated maker"
-             } = json_response(conn, 200)["data"]
+      %{
+          "id" => id,
+          "available_from" => available_from,
+        } = json_response(conn, 200)["data"]
+        
+      assert {:ok, date} = Timex.parse(available_from, "{ISO:Extended}")
+      assert is_struct(date) == true
     end
 
-    test "renders errors when data is invalid", %{conn: conn, cars: cars} do
-      conn = put(conn, Routes.cars_path(conn, :update, cars), cars: @invalid_attrs)
+    test "renders errors when data is invalid", %{conn: conn, cars: car} do
+      conn = put(conn, Routes.cars_path(conn, :update, car), car: @invalid_attrs)
       assert json_response(conn, 422)["errors"] != %{}
     end
   end
@@ -84,7 +86,7 @@ defmodule CarsAppWeb.CarsControllerTest do
   end
 
   defp create_cars(_) do
-    cars = fixture(:cars)
+    cars = fixture(:car)
     %{cars: cars}
   end
 end

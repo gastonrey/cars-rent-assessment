@@ -52,7 +52,10 @@ defmodule CarsApp.CarsRentalSubscriptions do
   def create_subscription(attrs \\ %{}) do
     %Subscription{}
     |> Subscription.changeset(attrs)
-    |> Repo.insert()
+    |> Repo.insert!()
+  rescue
+    e in Ecto.InvalidChangesetError -> {:error, e.changeset}
+    e in [Postgrex.Error, MatchError] -> {:error, %{error: e.changeset.errors}}
   end
 
   @doc """
@@ -69,6 +72,7 @@ defmodule CarsApp.CarsRentalSubscriptions do
   """
   def update_subscription(%Subscription{} = subscription, attrs) do
     subscription
+    |> Repo.preload(:cars)
     |> Subscription.changeset(attrs)
     |> Repo.update!()
   end

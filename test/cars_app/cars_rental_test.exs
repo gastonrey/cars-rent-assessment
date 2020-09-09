@@ -21,8 +21,7 @@ defmodule CarsApp.CarsRentalTest do
   end
 
   describe "cars" do
-    @valid_attrs %{maker: "bmw", color: "some color"}
-    @valid_attrs_with_model %{year: "2018", name: "Yaris"}
+    @valid_attrs %{maker: "bmw", color: "some color", model: "serie3", year: "2019"}
     @update_attrs %{color: "some updated color"}
     @invalid_attrs %{maker: nil}
     @subscription_attrs %{type: "monthly", price: 19.20, currency: "eu"}
@@ -55,35 +54,20 @@ defmodule CarsApp.CarsRentalTest do
       assert [%Subscription{cars_id: car_id}] = car.subscription
     end
 
-    test "create_cars with model" do
-      car = CarsRental.create_cars(Map.merge(@valid_attrs, %{model: @valid_attrs_with_model}))
-      assert car.models_id != nil
-    end
-
-    test "create_cars with all parameters" do
-      additional_params = %{subscription: @subscription_attrs, model: @valid_attrs_with_model}
-      car = CarsRental.create_cars(Map.merge(@valid_attrs, additional_params))
-      car_id = car.id
-      assert car.models_id != nil
-      assert [%Subscription{cars_id: car_id}] = car.subscription
-    end
-
     test "create_cars/1 with invalid data returns error changeset" do
-      assert_raise Ecto.InvalidChangesetError, fn ->
-        CarsRental.create_cars(@invalid_attrs)
-      end
+      assert {:error, %Ecto.Changeset{}} = CarsRental.create_cars(@invalid_attrs)
     end
 
     test "update_cars/2 with valid data updates the cars" do
       cars = cars_fixture()
-      assert {:ok, %Cars{} = cars} = CarsRental.update_cars(cars, @update_attrs)
-      assert cars.color == "some updated color"
+      assert %Cars{color: color} = CarsRental.update_cars(cars, @update_attrs)
+      assert color == "some updated color"
     end
 
     test "update_cars/2 with invalid data returns error changeset" do
-      cars = cars_fixture()
+      cars = Factory.insert!(:car)
       assert {:error, %Ecto.Changeset{}} = CarsRental.update_cars(cars, @invalid_attrs)
-      assert cars == CarsRental.get_cars!(cars.id)
+      assert cars.maker == CarsRental.get_cars!(cars.id).maker
     end
 
     test "delete_cars/1 deletes the cars" do
@@ -95,11 +79,6 @@ defmodule CarsApp.CarsRentalTest do
     test "change_cars/1 returns a cars changeset" do
       cars = cars_fixture()
       assert %Ecto.Changeset{} = CarsRental.change_cars(cars)
-    end
-
-    test "Created car has an assocciated model" do
-      car = Factory.build(:car_with_model)
-      assert car.models != nil
     end
 
     test "start_subscription/2 subscription is started and car is available next month" do

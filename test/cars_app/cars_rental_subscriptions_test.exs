@@ -26,12 +26,9 @@ defmodule CarsApp.CarsRentalSubscriptionsTest do
     @invalid_attrs %{currency: "foo", type: "bar"}
 
     def subscription_fixture(attrs \\ %{}) do
-      {:ok, subscription} =
-        attrs
-        |> Enum.into(@valid_attrs)
-        |> CarsRentalSubscriptions.create_subscription()
-
-      subscription
+      attrs
+      |> Enum.into(@valid_attrs)
+      |> CarsRentalSubscriptions.create_subscription()
     end
 
     test "list_subscription/0 returns all subscription" do
@@ -45,7 +42,7 @@ defmodule CarsApp.CarsRentalSubscriptionsTest do
     end
 
     test "create_subscription/1 with valid data creates a subscription" do
-      assert {:ok, %Subscription{} = subscription} = CarsRentalSubscriptions.create_subscription(@valid_attrs)
+      assert subscription = CarsRentalSubscriptions.create_subscription(@valid_attrs)
       assert subscription.currency == "eu"
       assert subscription.price == 120.5
       assert subscription.type == "monthly"
@@ -65,7 +62,7 @@ defmodule CarsApp.CarsRentalSubscriptionsTest do
 
     test "update_subscription/2 with invalid data returns error changeset" do
       subscription = subscription_fixture()
-      assert_raise Ecto.InvalidChangesetError, fn -> 
+      assert_raise Ecto.InvalidChangesetError, fn ->
         CarsRentalSubscriptions.update_subscription(subscription, @invalid_attrs)
       end
       assert subscription == CarsRentalSubscriptions.get_subscription!(subscription.id)

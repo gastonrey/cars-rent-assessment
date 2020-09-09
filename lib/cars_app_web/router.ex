@@ -8,6 +8,8 @@ defmodule CarsAppWeb.Router do
   scope "/api", CarsAppWeb do
     pipe_through :api
 
+    put "/subscription/:id", CarsController, :update_subscription
+    put "/cars/start_subscription/:id", CarsController, :start_subscription
     resources "/cars", CarsController
   end
 
