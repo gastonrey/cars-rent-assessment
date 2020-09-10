@@ -3,5 +3,5 @@ defmodule CarsApp.Repo do
     otp_app: :cars_app,
     adapter: Ecto.Adapters.Postgres
 
-    use Scrivener, page_size: 10
+    use Scrivener, page_size: 20
 end
