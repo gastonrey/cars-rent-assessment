@@ -13,17 +13,18 @@ defmodule CarsApp.CarsRental do
   alias CarsApp.CarsRentalSubscriptions
 
   @doc """
-  Returns the list of cars.
+  Returns the list of cars paginated.
+  See Repo module to pages Limit
 
   ## Examples
 
-      iex> list_cars()
+      iex> list_cars(%{"page" => 5, "maker" => "foo", "color" => "green"})
       [%Cars{}, ...]
 
   """
   def list_cars(query_params \\ %{}, conn) do
     three_months_ahead_from_now = Timex.now() |> Timex.shift(months: +3)
-    # page_number = x = if is_binary?(query_params), do: 1, else: 2
+    
     Cars
     |> build_query(conn, query_params)
     |> join(:left, [c], s in assoc(c, :subscription))
@@ -50,11 +51,11 @@ defmodule CarsApp.CarsRental do
   def get_cars!(id), do: Repo.get!(Cars, id) |> Repo.preload([:subscription])
 
   @doc """
-  Creates a cars with assocciated subscription
+  Creates a cars with assocciated subscription if it's data is passed
 
   ## Examples
 
-      iex> create_cars(%{field: value})
+      iex> create_cars(%{maker: "foo"})
       {:ok, %Cars{}}
 
       iex> create_cars(%{field: bad_value})
@@ -123,6 +124,16 @@ defmodule CarsApp.CarsRental do
     Cars.changeset(cars, attrs)
   end
 
+  @doc """
+  Given a %Cars{} model starts the subscription. This fills the started_at field.
+  This also updates the :available_from field, denpending on subscription type (monthly, daily, etc)
+
+  ## Examples
+
+      iex> start_subscription(cars, ~D["2020-09-01"])
+      %Cars{...}
+
+  """
   def start_subscription(car, started_at) do
     [subscription] = car.subscription
 
@@ -135,6 +146,16 @@ defmodule CarsApp.CarsRental do
     update_availability(car)
   end
 
+  @doc """
+  Given a %Cars{} model adds a subscription with given attrs.
+  This also updates the :available_from field, denpending on subscription type (monthly, daily, etc)
+
+  ## Examples
+
+      iex> add_subscription(cars, %{type: "monthly", price: 34.56, currency: "eu"})
+      %Cars{...}
+
+  """
   def add_subscription(car, params)
       when is_map_key(params, "subscription") or is_map_key(params, :subscription) do
     params = params |> key_to_atom()
@@ -152,11 +173,21 @@ defmodule CarsApp.CarsRental do
     update_availability(result)
   end
 
+  @doc """
+    When no subscription attrs, just update the availability.
+
+    Returns %Cars{}
+  """
   def add_subscription(car, _) do
     car = car |> Repo.preload([:subscription])
     update_availability(car)
   end
 
+  @doc """
+    Updates the :available_from field. When subscription is started_at, then it calculates the next availability
+
+    Returns %Cars{}
+  """
   defp update_availability(
          %Cars{subscription: [%Subscription{started_at: subscription_start}]} = car
        )
@@ -170,6 +201,11 @@ defmodule CarsApp.CarsRental do
     |> Repo.update!()
   end
 
+  @doc """
+    If no subscription started then availability is just now
+
+    Returns %Cars{}
+  """
   defp update_availability(%Cars{} = car) do
     update_cars(car, %{available_from: Timex.now()})
   end
