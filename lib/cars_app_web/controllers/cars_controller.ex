@@ -7,8 +7,8 @@ defmodule CarsAppWeb.CarsController do
 
   action_fallback CarsAppWeb.FallbackController
 
-  def index(conn, _params) do
-    cars = CarsRental.list_cars()
+  def index(conn, query_params) do
+    cars = CarsRental.list_cars(query_params, conn)
     render(conn, "index.json", car: cars)
   end
 

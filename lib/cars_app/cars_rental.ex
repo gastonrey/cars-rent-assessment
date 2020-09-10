@@ -4,6 +4,8 @@ defmodule CarsApp.CarsRental do
   """
 
   import Ecto.Query, warn: false
+  use CarsApp.Filters
+
   alias CarsApp.Repo
 
   alias CarsApp.CarsRental.Cars
@@ -19,9 +21,10 @@ defmodule CarsApp.CarsRental do
       [%Cars{}, ...]
 
   """
-  def list_cars do
+  def list_cars(query_params \\ %{}, conn) do
     three_months_ahead_from_now = Timex.now() |> Timex.shift(months: +3)
     Cars
+    |> build_query(conn, query_params)
     |> join(:left, [c], s in assoc(c, :subscription))
     |> where([c, s], c.available_from <= ^three_months_ahead_from_now)
     |> order_by([c, s], [{:asc, s.price}])
