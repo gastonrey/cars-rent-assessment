@@ -23,13 +23,14 @@ defmodule CarsApp.CarsRental do
   """
   def list_cars(query_params \\ %{}, conn) do
     three_months_ahead_from_now = Timex.now() |> Timex.shift(months: +3)
+    # page_number = x = if is_binary?(query_params), do: 1, else: 2
     Cars
     |> build_query(conn, query_params)
     |> join(:left, [c], s in assoc(c, :subscription))
     |> where([c, s], c.available_from <= ^three_months_ahead_from_now)
     |> order_by([c, s], [{:asc, s.price}])
     |> preload([c, s], subscription: s)
-    |> Repo.all()
+    |> Repo.paginate(page: query_params |> Map.get("page"))
   end
 
   @doc """

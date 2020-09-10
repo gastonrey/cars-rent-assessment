@@ -44,7 +44,8 @@ defmodule CarsApp.MixProject do
       {:jason, "~> 1.0"},
       {:plug_cowboy, "~> 2.0"},
       {:timex, "~> 3.5"},
-      {:inquisitor, "~> 0.5"}
+      {:inquisitor, "~> 0.5"},
+      {:scrivener_ecto, "~> 2.0"}
     ]
   end
 
