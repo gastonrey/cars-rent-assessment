@@ -88,8 +88,6 @@ defmodule CarsAppWeb.CarsController do
     - color: String
     - model: String
     - year: String
-    - subscription: Object, example: %{price: 45.67, type: "monthly", currency: "eu"} 
-                            ## All these fields are required if :subscription key is provided
 
   ## Examples
 
