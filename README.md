@@ -1,6 +1,6 @@
 # Cars REST API
 
-## Solution and some assumptions
+## Solution and some assumptions
 
 For this API I have created two models using Ecto: Cars and Subscriptions.
 I assumed that the subscription has a relation with the cars, since  a car can have many subscriptions so that we can keep tracking a history.
@@ -20,7 +20,7 @@ Am more used to Swagger but am not a fun of it. In Elixir projects I used ExDocs
 * Regarding the Date fields I would recieve them as milliseconds coming from utc date times and them parsing them back before storing it
 * I usually create a mix task or seed for testing, unfortunatelly didn't have the time, sorry
 
-## Start up
+## Start up
 
 To start your Phoenix server:
 
